@@ -19,21 +19,47 @@ namespace mystl{
         typedef T* pointer;
         typedef const T* const_pointer;
         typedef size_t size_type;
+        typedef T* iterator;
+        typedef const T* const_iterator;
 
-        //Iterator implement.
-        class iterator: public _iterator<T> {
-        public:
-            iterator(T* it): _iterator<T>(it) {}
-            iterator operator=(const _iterator<T>& it) {
-                this->pointer = it.get_pointer();
-                return *this;
-            }
-        };
-        typedef const iterator const_iterator;
         //Reverse iterator implement.
         class reverse_iterator: public _iterator<T> {
         public:
-            reverse_iterator(T* it): _reverse_iterator<T>(it) {}
+            using typename _iterator<T>::value_type;
+            using typename _iterator<T>::pointer;
+            using typename _iterator<T>::reference;
+            reverse_iterator(T* it): _iterator<T>(it) {}
+            reverse_iterator& operator++() {
+                return --this->pointer;
+            }
+            reverse_iterator operator++(int) {
+                reverse_iterator temp(this->pointer);
+                --this->pointer;
+                return temp;
+            }
+            reverse_iterator& operator--() {
+                return ++this->pointer;
+            }
+            reverse_iterator operator--(int) {
+                reverse_iterator temp(this->pointer);
+                ++this->pointer;
+                return temp;
+            }
+            reverse_iterator operator=(reverse_iterator it) {
+                return mystl_iterator::assign(*this, it);
+            }
+            reference operator*() {
+                return *(this->pointer);
+            }
+            reverse_iterator operator+(size_type n) {
+                return mystl_iterator::forward_random(*this, n);
+            }
+            reverse_iterator operator-(size_type n) {
+                return mystl_iterator::backward_random(*this, n);
+            }
+            reverse_iterator operator-(reverse_iterator it) {
+                return mystl_iterator::distance(it, *this);
+            }
         };
         typedef const reverse_iterator const_reverse_iterator;
         
@@ -207,60 +233,55 @@ namespace mystl{
             }
         }
         //Insert element at position
-        template<typename inputIterator>
-        iterator insert(inputIterator position, const value_type& value) {
-            size_type pos = position - begin();
+        iterator insert(iterator position, const value_type& value) {
+            size_type pos = position - first_element_pointer;
             if (element_num == _max_size) {
                 auto_extend_space(_max_size + 1);
             }
-            position = begin() + pos;
-            _allocator.move((position + 1).get_pointer(), position.get_pointer(),
+            position = first_element_pointer + pos;
+            _allocator.move(position + 1, position, 
                     end() - position);
-            _allocator.construct(position.get_pointer(), 1, value);
+            _allocator.construct(position, 1, value);
             ++element_num;
             return position;
         }
         //Fill insert.
-        template<typename inputIterator>
-        void insert(inputIterator position, size_type n, const value_type& value) {
-            size_type pos = position - begin();
+        void insert(iterator position, size_type n, const value_type& value) {
+            size_type pos = position - first_element_pointer;
             if (element_num + n > _max_size) {
                 auto_extend_space(element_num + n);
             }
             position = begin() + pos;
-            _allocator.move((position + n).get_pointer(), position.get_pointer(),
+            _allocator.move(position + n, position,
                     n);
-            _allocator.construct(position.get_pointer(), n, value);
+            _allocator.construct(position, n, value);
             element_num += n;
         }
         //Range insert.
-        template<typename inputIterator>
-        void insert(inputIterator position, inputIterator first, inputIterator last) {
+        void insert(iterator position, iterator first, iterator last) {
             size_type n = last - first;
-            size_type pos = position - begin();
+            size_type pos = position - first_element_pointer;
             if (element_num + n > _max_size) {
                 auto_extend_space(element_num + n);
             }
-            position = begin() + pos;
-            _allocator.move((position + n).get_pointer(),
-                    position.get_pointer(), n);
-            _allocator.reallc(position.get_pointer(), first, last);
+            position = first_element_pointer + pos;
+            _allocator.move(position + n,
+                    position, n);
+            _allocator.construct(position, first, last);
             element_num += n;
         }
         //Erase element at position.
-        template<typename inputIterator>
-        iterator erase(inputIterator position) {
-            (position.get_pointer())->~T();
-            _allocator.copy(position.get_pointer(), (position + 1).get_pointer(),
-                    end() - position() - 1);
+        iterator erase(iterator position) {
+            position->~T();
+            _allocator.copy(position, position + 1,
+                    end() - position - 1);
             --element_num;
             return position;
         }
-        template<typename inputIterator>
-        iterator erase(inputIterator first, inputIterator last) {
+        iterator erase(iterator first, iterator last) {
             size_type n = last - first;
-            _allocator.destroy(first.get_pointer(), n);
-            _allocator.copy(first.get_pointer(), (first + n).get_pointer(),
+            _allocator.destroy(first, n);
+            _allocator.copy(first, first + n,
                     n);
             element_num -= n;
             return first;

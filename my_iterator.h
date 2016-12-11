@@ -6,95 +6,75 @@
 namespace mystl {
 
     //A base _iterator class for containers.
-    template<typename T>
+    template<typename T, typename Pointer = T*, typename Reference = T&>
     class _iterator {
     public:
-        _iterator(T* pointer) {
-            this->pointer = pointer;
+        //Should be declared in subclass.
+        typedef T value_type;
+        typedef Pointer pointer;
+        typedef Reference reference;
+
+        _iterator(pointer _pointer) {
+            this->_pointer = _pointer;
         }
-        //If you don't override +, - operations, you have to write a
-        //override of operator=, because those operator in base class
-        //return base class. When you use iterator a = a + 1, it'll break.
-        _iterator operator=(const _iterator& it) {
-            this->pointer = it.pointer;
-            return *this;
-        }
-        virtual _iterator& operator++() {
-            ++pointer;
-            return *this;
-        }
-        virtual _iterator operator++(int) {
-            _iterator temp = *this;
-            ++pointer;
-            return temp;
-        }
-        virtual _iterator& operator--() {
-            --pointer;
-            return *this;
-        }
-        virtual _iterator operator--(int) {
-            _iterator temp = *this;
-            --pointer;
-            return temp;
-        }
-        virtual T& operator*() {
-            return *pointer;
-        }
-        virtual _iterator operator+(size_t n) const {
-            return _iterator(pointer + n);
-        }
-        virtual _iterator operator-(size_t n) const {
-            return _iterator(pointer - n);
-        }
-        virtual size_t operator-(const _iterator& other) const {
-            return this->pointer - other.pointer;
-        }
-        bool operator==(const _iterator& other) const {
-            return this->pointer == other.pointer;
-        }
-        bool operator!=(const _iterator& other) const {
-            return this->pointer != other.pointer;
-        }
-        T* get_pointer() const {
-            return pointer;
+        
+        
+        template<typename InputIterator1, typename InputIterator2>
+        friend InputIterator1 assign(InputIterator1, InputIterator2);
+        
+        pointer get_pointer() const {
+            return _pointer;
         }
     protected:
-        T* pointer;
+        pointer _pointer;
     };
 
-    //A base _reverse_iterator class for containers.
-    template<typename T>
-    class _reverse_iterator: public _iterator<T> {
-    public:
-        _reverse_iterator(T* pointer): _iterator<T>(pointer) {}
-        virtual _reverse_iterator& operator++() {
-            --this->pointer;
-            return *this;
+}
+
+namespace mystl_iterator {
+    //Functions of iterators.
+
+    //Get forward n of iterator.
+    template<typename InputIterator>
+    InputIterator forward(InputIterator it, size_t n = 1) {
+        for (size_t i = 0; i < n; ++i) {
+            ++it;
         }
-        virtual _reverse_iterator operator++(int) {
-            _reverse_iterator temp = *this;
-            --this->pointer;
-            return temp;
+        return it;
+    }
+    template<typename InputIterator>
+    InputIterator forward_random(InputIterator it, size_t n = 1) {
+        return it + n;
+    }
+    //Get backward n of iterator.
+    template<typename InputIterator>
+    InputIterator backward(InputIterator it, size_t n = 1) {
+        for (size_t i = 0; i < n; ++i) {
+            --it;
         }
-        virtual _reverse_iterator& operator--() {
-            ++this->pointer;
-            return *this;
-        }
-        virtual _reverse_iterator operator--(int) {
-            _reverse_iterator temp = *this;
-            ++this->pointer;
-            return temp;
-        }
-        virtual size_t operator-(const _reverse_iterator& other) const {
-            return other.pointer - this->pointer;
-        }
-        virtual _reverse_iterator operator+(size_t n) const {
-            return _reverse_iterator(this->pointer - n);
-        }
-        virtual T* operator-(size_t n) const {
-            return _reverse_iterator(this->pointer + n);
-        }
-    };
+        return it;
+    }
+    template<typename InputIterator>
+    InputIterator backward_random(InputIterator it, size_t n = 1) {
+        return it - n;
+    }
+    //Get distance between two interator, second param is bigger than the first.
+    template<typename InputIterator>
+    size_t distance(InputIterator it1, InputIterator it2) {
+        size_t n = 0;
+        for ( ; it1 != it2; ++it1)
+            ++n;
+        return n;
+    }
+    template<typename InputIterator>
+    size_t distance_random(InputIterator it1, InputIterator it2) {
+        return it2 - it1;
+    }
+    template<typename InputIterator1, typename InputIterator2>
+    InputIterator1 assign(InputIterator1 it1, InputIterator2 it2) {
+        it1.pointer = it2.pointer;
+        return it1;
+    }
 }
 
 #endif
