@@ -95,14 +95,16 @@ namespace mystl{
         //Destructor.
         ~vector() {
             _allocator.destroy(first_element_pointer, element_num);
-            _allocator.dealloc(first_element_pointer);
+            if (0 != _max_size)
+                _allocator.dealloc(first_element_pointer, _max_size);
         }
 
         vector& operator=(const vector& v) {
             _allocator.destroy(first_element_pointer, element_num);
             if (_max_size < v.max_size()) {
-                _allocator.dealloc(first_element_pointer);
-                _allocator.allocate(v.size());
+                if (0 != _max_size)
+                    _allocator.dealloc(first_element_pointer, _max_size);
+                _allocator.allocate(v.max_size());
             }
             _allocator.construct(first_element_pointer, v.begin(), v.end());
         }
@@ -210,7 +212,8 @@ namespace mystl{
             _allocator.destroy(first_element_pointer, element_num);
             size_t n = last - first;
             if (_max_size < n) {
-                _allocator.dealloc(first_element_pointer);
+                if (0 != _max_size)
+                    _allocator.dealloc(first_element_pointer, _max_size);
                 first_element_pointer = _allocator.allocate(n);
                 _max_size = last -first;
             }
@@ -261,25 +264,25 @@ namespace mystl{
         void insert(iterator position, iterator first, iterator last) {
             size_type n = last - first;
             size_type pos = position - first_element_pointer;
-            if (element_num + n > _max_size) {
+            if (element_num + n > _max_size)
                 auto_extend_space(element_num + n);
-            }
             position = first_element_pointer + pos;
-            _allocator.move(position + n,
-                    position, n);
+            _allocator.move(position + n, position, n);
             _allocator.construct(position, first, last);
             element_num += n;
         }
         //Erase element at position.
         iterator erase(iterator position) {
             position->~T();
-            _allocator.copy(position, position + 1,
-                    end() - position - 1);
+            if (position != end())
+                _allocator.copy(position, position + 1, end() - position - 1);
             --element_num;
             return position;
         }
         iterator erase(iterator first, iterator last) {
             size_type n = last - first;
+            if (n <= 0)
+                return first;
             _allocator.destroy(first, n);
             _allocator.copy(first, first + n,
                     n);
@@ -294,7 +297,8 @@ namespace mystl{
         //Clear vector.
         void clear() {
             _allocator.destroy(first_element_pointer, element_num);
-            _allocator.dealloc(first_element_pointer);
+            if (0 != _max_size)
+                _allocator.dealloc(first_element_pointer, _max_size);
             _max_size = 0;
             element_num = 0;
         }
@@ -314,11 +318,11 @@ namespace mystl{
             while (new_size < required)
                 new_size = new_size << 1;
             pointer temp = _allocator.allocate(new_size);
-            _allocator.copy(temp, first_element_pointer, element_num);
-            //I don't think we need to destruct all elements of previous space, we only need to free the space.
-            //If previous data linked to other space, elements of our new copy may need them, and can use them directly.
-            if (0 != _max_size)
-                _allocator.dealloc(first_element_pointer);
+            _allocator.construct(temp, begin(), end());
+            if (0 != _max_size) {
+                _allocator.destroy(first_element_pointer, element_num);
+                _allocator.dealloc(first_element_pointer, _max_size);
+            }
             first_element_pointer = temp;
             _max_size = new_size;
         }
