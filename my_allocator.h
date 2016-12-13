@@ -2,6 +2,7 @@
 #define MY_ALLOCATOR_H
 
 #include <stddef.h>
+#include <stdexcept>
 #include "my_construct.h"
 
 namespace mystl {

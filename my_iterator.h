@@ -2,6 +2,7 @@
 #define MY_ITERATOR_H
 
 #include <stddef.h>
+#include "my_algobase.h"
 
 namespace mystl {
 
@@ -16,7 +17,7 @@ namespace mystl {
     template<class Category, class T, class Distance = ptrdiff_t, class Pointer = T*, class Reference = T&>
     class iterator {
     public:
-        typedef Category iteraotr_category;
+        typedef Category iterator_category;
         typedef T value_type;
         typedef Distance difference_type;
         typedef Pointer pointer;
@@ -27,7 +28,8 @@ namespace mystl {
     //For traits.
     template<class Iterator>
     class iterator_traits {
-        typedef typename Iterator::iteraotr_category iteraotr_category;
+    public:
+        typedef typename Iterator::iterator_category iterator_category;
         typedef typename Iterator::value_type value_type;
         typedef typename Iterator::difference_type difference_type;
         typedef typename Iterator::pointer pointer;
@@ -37,7 +39,8 @@ namespace mystl {
     //Special for native pointer.
     template<class T>
     class iterator_traits<T*> {
-        typedef random_access_iterator_tag iteraotr_category;
+    public:
+        typedef random_access_iterator_tag iterator_category;
         typedef T value_type;
         typedef ptrdiff_t difference_type;
         typedef T* pointer;
@@ -47,12 +50,88 @@ namespace mystl {
     //Special for native pointer to const.
     template<class T>
     class iterator_traits<const T*> {
+    public:
         typedef random_access_iterator_tag iterator_category;
         //In my opinion, value_type should be const T.
         typedef const T value_type;
         typedef ptrdiff_t difference_type;
         typedef const T* pointer;
         typedef const T& reference;
+    };
+
+    //A base reverse_iterator class for containers.
+    template<class Iterator>
+    class reverse_iterator: public iterator<typename iterator_traits<Iterator>::iterator_category,
+            typename iterator_traits<Iterator>::value_type,
+            typename iterator_traits<Iterator>::difference_type,
+            typename iterator_traits<Iterator>::pointer,
+            typename iterator_traits<Iterator>::reference > {
+    public:
+        typedef typename iterator_traits<Iterator>::iterator_category iterator_category;
+        typedef typename iterator_traits<Iterator>::value_type value_type;
+        typedef typename iterator_traits<Iterator>::difference_type difference_type;
+        typedef typename iterator_traits<Iterator>::pointer pointer;
+        typedef typename iterator_traits<Iterator>::reference reference;
+
+        //Constructors.
+        reverse_iterator() {}
+        explicit reverse_iterator(Iterator it): current(it) {}
+        template<class U>
+        reverse_iterator(const reverse_iterator<U>& it): current(it){}
+
+        //Assign
+        template<class U>
+        reverse_iterator& operator=(const reverse_iterator<U>& it) {
+            current = it.current;
+        }
+
+        //Return base iterator.
+        Iterator base() const {
+            return current;
+        }
+
+        //Operators override.
+        reference operator*() const {
+            Iterator temp(current);
+            return *(--temp);
+        }
+        pointer operator->() const {
+            return addressof(operator*());
+        }
+        reverse_iterator& operator++() {
+            --current;
+            return *this;
+        }
+        reverse_iterator operator++(int) {
+            reverse_iterator temp(*this);
+            --current;
+            return temp;
+        }
+        reverse_iterator& operator--() {
+            ++current;
+            return *this;
+        }
+        reverse_iterator operator--(int) {
+            reverse_iterator temp(*this);
+            ++current;
+            return temp;
+        }
+        reverse_iterator operator+(difference_type n) const {
+            return reverse_iterator(base() - n);
+        }
+        reverse_iterator operator-(difference_type n) const {
+            return reverse_iterator(base() + n);
+        }
+        reverse_iterator& operator+=(difference_type n) {
+            current -= n;
+            return *this;
+        }
+        reverse_iterator& operator-=(difference_type n) {
+            current += n;
+            return *this;
+        }
+    protected:
+        Iterator current;
     };
 
     //Functions.
@@ -104,8 +183,37 @@ namespace mystl {
     //Advance for general.
     template<class Iterator, class Distance>
     inline void advance(Iterator& it, Distance n) {
-        _advance(it, n, iterator_traits<Iterator>::iteraotr_category());
+        _advance(it, n, iterator_traits<Iterator>::iterator_category());
     }
+
+    //Functions for reverse_iterator.
+    template<class Iterator1, class Iterator2>
+    bool operator==(const reverse_iterator<Iterator1>& l, const reverse_iterator<Iterator2>& r) {
+        return l.base() == r.base();
+    }
+    template<class Iterator1, class Iterator2>
+    bool operator!=(const reverse_iterator<Iterator1>& l, const reverse_iterator<Iterator2>& r) {
+        return l.base() != r.base();
+    }
+    template<class Iterator1, class Iterator2>
+    bool operator<(const reverse_iterator<Iterator1>& l, const reverse_iterator<Iterator2>& r) {
+        return l.base() < r.base();
+    }
+    template<class Iterator1, class Iterator2>
+    bool operator>(const reverse_iterator<Iterator1>& l, const reverse_iterator<Iterator2>& r) {
+        return l.base() > r.base();
+    }
+    template<class Iterator1, class Iterator2>
+    bool operator<=(const reverse_iterator<Iterator1>& l, const reverse_iterator<Iterator2>& r) {
+        return l.base() <= r.base();
+    }
+    template<class Iterator1, class Iterator2>
+    bool operator>=(const reverse_iterator<Iterator1>& l, const reverse_iterator<Iterator2>& r) {
+        return l.base() >= r.base();
+    }
+
+
+
 
 }
 
