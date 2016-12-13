@@ -1,16 +1,12 @@
-#ifndef MY_ALLOCAvalue_typeOR_H
-#define MY_ALLOCAvalue_typeOR_H
+#ifndef MY_ALLOCATOR_H
+#define MY_ALLOCATOR_H
 
-#include <new>
-#include <stdlib.h>
-#include <string.h>
-#include "my_iterator.h"
-
-using namespace mystl;
+#include <stddef.h>
+#include "my_construct.h"
 
 namespace mystl {
     
-    template<typename T>
+    template<class T>
     class allocator {
     public:
         typedef T value_type;
@@ -20,8 +16,33 @@ namespace mystl {
         typedef T& reference;
         typedef const T& const_reference;
         typedef size_t size_type;
+        typedef ptrdiff_t difference_type;
+        
+        template<class U>
+        class rebind {
+        public:
+            typedef allocator<U> allocator;
+        };
+
+        //Contructors
+        allocator() {}
+        allocator(const allocator&) {}
+        template<class U>
+        allocator(const allocator<U>&) {}
+
+        //Destructor
+        ~allocator() {}
+        
+        //Get address.
+        pointer address(reference x) const {
+            return &x;
+        }
+        const_pointer address(const_reference x) const {
+            return (const_pointer)&x;
+        }
+
         //Allocate space of n * size of value_type, if failed throw bad_alloc.
-        pointer allocate(size_type n) {
+        const_pointer allocate(size_type n, const void* = 0) {
             void* p = ::operator new(n * sizeof(value_type));
             if (0 == p) {
                 throw std::bad_alloc();
@@ -29,56 +50,21 @@ namespace mystl {
             return (pointer) p;
         }
         //Recall space from p pointing to n value_type elements.
-        void dealloc(pointer p, size_type) {
-            delete p;
+        void deallocate(pointer p, size_type) {
+            ::operator delete(p);
         }
-        //Construct n value_type elements, call value_type's default constructor.
-        void construct(pointer p, size_type n = 1) {
-            new(p) value_type[n];
+        //Construct a element with value x.
+        void construct(pointer p, const_reference x) {
+            _construct(p, x);
         }
-        //Construct n value_type elements, call value_type's copy constructor.
-        void construct(pointer p, size_type n, const_reference value) {
-            for(size_type i = 0; i < n; ++i) {
-                new(p + i) value_type(value);
-            }
-        }
-        //Construct elements copy between two iterator.
-        template<typename inputIterator>
-        void construct(pointer p, inputIterator first, inputIterator last) {
-            size_type n = last - first;
-            for(size_type i = 0; i < n; ++i) {
-                new(p + i) value_type(*(first + i));
-            }
-        }
-        //If value_type == int, do not call function above!
-        void construct(int* p, int n, int value) {
-            for(size_type i = 0; i < n; ++i) {
-                new(p + i) int(value);
-            }
-        }
-
         //Destruct elements.
-        void destroy(pointer p, size_type n) {
-            for (size_type i = 0; i < n; ++i) {
-                (p + i)->~value_type();
-            }
+        void destroy(pointer p) {
+            _destory(p);
         }
-        //Copy content, from start to end.
-        void copy(pointer des, void* sou, size_type n) {
-            memcpy(des, sou, n * sizeof(value_type));
-        }
-        //Also copy content, but can from end to start, deal with overlapping.
-        void move(pointer des, void* sou, size_type n) {
-            memmove(des, sou, n * sizeof(value_type));
-        }
-        //Swap swap memory of two block.
-        template<typename SWAP_value_typeYPE>
-        void swap(SWAP_value_typeYPE* p1, SWAP_value_typeYPE* p2) {
-            SWAP_value_typeYPE* temp = malloc(sizeof(SWAP_value_typeYPE));
-            memcpy(temp, p1, sizeof(SWAP_value_typeYPE));
-            memcpy(p1, p2, sizeof(SWAP_value_typeYPE));
-            memcpy(p2, temp, sizeof(SWAP_value_typeYPE));
-            free(temp);
+        
+        //Get max_size.
+        size_type max_size() const {
+            return ((size_type)-1) / sizeof(value_type);
         }
     };
 }

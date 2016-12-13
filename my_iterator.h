@@ -1,80 +1,112 @@
 #ifndef MY_ITERATOR_H
 #define MY_ITERATOR_H
 
-#include <stdlib.h>
+#include <stddef.h>
 
 namespace mystl {
 
-    //A base _iterator class for containers.
-    template<typename T, typename Pointer = T*, typename Reference = T&>
-    class _iterator {
+    //Iterator tags
+    class input_iterator_tag {};
+    class output_iterator_tag {};
+    class forward_iterator_tag: public input_iterator_tag{};
+    class bidirectional_iterator_tag: public forward_iterator_tag {};
+    class random_access_iterator_tag: public bidirectional_iterator_tag {};
+
+    //A base iterator class for containers.
+    template<class Category, class T, class Distance = ptrdiff_t, class Pointer = T*, class Reference = T&>
+    class iterator {
     public:
-        //Should be declared in subclass.
+        typedef Category iteraotr_category;
         typedef T value_type;
+        typedef Distance difference_type;
         typedef Pointer pointer;
         typedef Reference reference;
-
-        _iterator(pointer _pointer) {
-            this->_pointer = _pointer;
-        }
         
-        
-        template<typename InputIterator1, typename InputIterator2>
-        friend InputIterator1 assign(InputIterator1, InputIterator2);
-        
-        pointer get_pointer() const {
-            return _pointer;
-        }
-    protected:
-        pointer _pointer;
     };
 
-}
+    //For traits.
+    template<class Iterator>
+    class iterator_traits {
+        typedef typename Iterator::iteraotr_category iteraotr_category;
+        typedef typename Iterator::value_type value_type;
+        typedef typename Iterator::difference_type difference_type;
+        typedef typename Iterator::pointer pointer;
+        typedef typename Iterator::reference reference;
+    };
+    
+    //Special for native pointer.
+    template<class T>
+    class iterator_traits<T*> {
+        typedef random_access_iterator_tag iteraotr_category;
+        typedef T value_type;
+        typedef ptrdiff_t difference_type;
+        typedef T* pointer;
+        typedef T& reference;
+    };
 
-namespace mystl_iterator {
-    //Functions of iterators.
+    //Special for native pointer to const.
+    template<class T>
+    class iterator_traits<const T*> {
+        typedef random_access_iterator_tag iterator_category;
+        //In my opinion, value_type should be const T.
+        typedef const T value_type;
+        typedef ptrdiff_t difference_type;
+        typedef const T* pointer;
+        typedef const T& reference;
+    };
 
-    //Get forward n of iterator.
-    template<typename InputIterator>
-    InputIterator forward(InputIterator it, size_t n = 1) {
-        for (size_t i = 0; i < n; ++i) {
-            ++it;
-        }
-        return it;
-    }
-    template<typename InputIterator>
-    InputIterator forward_random(InputIterator it, size_t n = 1) {
-        return it + n;
-    }
-    //Get backward n of iterator.
-    template<typename InputIterator>
-    InputIterator backward(InputIterator it, size_t n = 1) {
-        for (size_t i = 0; i < n; ++i) {
-            --it;
-        }
-        return it;
-    }
-    template<typename InputIterator>
-    InputIterator backward_random(InputIterator it, size_t n = 1) {
-        return it - n;
-    }
-    //Get distance between two interator, second param is bigger than the first.
-    template<typename InputIterator>
-    size_t distance(InputIterator it1, InputIterator it2) {
-        size_t n = 0;
-        for ( ; it1 != it2; ++it1)
+    //Functions.
+    
+    //Distance for input_iterator.
+    template<class InputIterator>
+    inline typename iterator_traits<InputIterator>::difference_type
+    _distance(InputIterator first, InputIterator last, input_iterator_tag) {
+        typename iterator_traits<InputIterator>::difference_type n;
+        for ( ; first != last; ++first)
             ++n;
         return n;
     }
-    template<typename InputIterator>
-    size_t distance_random(InputIterator it1, InputIterator it2) {
-        return it2 - it1;
+    //Distance for random_access_iterator.
+    template<class RandomAccessIterator>
+    inline typename iterator_traits<RandomAccessIterator>::difference_type
+    _distance(RandomAccessIterator first, RandomAccessIterator last, random_access_iterator_tag) {
+        return first - last;
     }
-    template<typename InputIterator1, typename InputIterator2>
-    InputIterator1 assign(InputIterator1 it1, InputIterator2 it2) {
-        it1.pointer = it2.pointer;
-        return it1;
+    //Distance for general.
+    template<class Iterator>
+    inline typename iterator_traits<Iterator>::difference_type
+    distance(Iterator first, Iterator last) {
+        return _distance(first, last, iterator_traits<Iterator>::iterator_category());
     }
+
+    //Advance for input_iterator.
+    template<class InputIterator, class Distance>
+    inline void _advance(InputIterator& it, Distance n, input_iterator_tag) {
+        for (Distance i = 0; i < n; ++i)
+            ++it;
+    }
+    //Advance for bidirectional_iterator.
+    template<class BidrectionalIterator, class Distance>
+    inline void _advance(BidrectionalIterator& it, Distance n, bidirectional_iterator_tag) {
+        if (n >= 0) {
+            for (Distance i = 0; i < n; ++i)
+                ++it;
+        } else {
+            for (Distance i = 0; i > n; --i)
+                --it;
+        }
+    }
+    //Advance for random_access_iterator.
+    template<class RandomAccessIterator, class Distance>
+    inline void _advance(RandomAccessIterator& it, Distance n, random_access_iterator_tag) {
+        it += n;
+    }
+    //Advance for general.
+    template<class Iterator, class Distance>
+    inline void advance(Iterator& it, Distance n) {
+        _advance(it, n, iterator_traits<Iterator>::iteraotr_category());
+    }
+
 }
 
 #endif

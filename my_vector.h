@@ -5,8 +5,6 @@
 #include "my_allocator.h"
 #include "my_iterator.h"
 
-using namespace mystl;
-
 namespace mystl{
 
     template<typename T, typename Alloc = allocator<T> >
@@ -28,28 +26,28 @@ namespace mystl{
             using typename _iterator<T>::value_type;
             using typename _iterator<T>::pointer;
             using typename _iterator<T>::reference;
-            reverse_iterator(T* it): _iterator<T>(it) {}
+            reverse_iterator(T* it): _pointer(it){}
             reverse_iterator& operator++() {
-                return --this->pointer;
+                return --_pointer;
             }
             reverse_iterator operator++(int) {
-                reverse_iterator temp(this->pointer);
-                --this->pointer;
+                reverse_iterator temp(_pointer);
+                --_pointer;
                 return temp;
             }
             reverse_iterator& operator--() {
-                return ++this->pointer;
+                return ++_pointer;
             }
             reverse_iterator operator--(int) {
-                reverse_iterator temp(this->pointer);
-                ++this->pointer;
+                reverse_iterator temp(_pointer);
+                _pointer;
                 return temp;
             }
             reverse_iterator operator=(reverse_iterator it) {
                 return mystl_iterator::assign(*this, it);
             }
             reference operator*() {
-                return *(this->pointer);
+                return *_pointer;
             }
             reverse_iterator operator+(size_type n) {
                 return mystl_iterator::forward_random(*this, n);
@@ -60,19 +58,19 @@ namespace mystl{
             reverse_iterator operator-(reverse_iterator it) {
                 return mystl_iterator::distance(it, *this);
             }
+        private:
+            pointer _pointer;
         };
         typedef const reverse_iterator const_reverse_iterator;
         
         //Default constructor, construct 0 element.
-        explicit vector(const allocator_type& alloc = allocator_type()) {
-            _max_size = 0;
-            element_num = 0;
+        explicit vector(const allocator_type& alloc = allocator_type()):
+            element_num(0), _capacity(0){
         }
         //Construct n elements with value _value.
         explicit vector(size_type n, const_reference _value = value_type(), 
-                const allocator_type& alloc = allocator_type()) {
-            _max_size = n;
-            element_num = n;
+                const allocator_type& alloc = allocator_type()):
+            element_num(n), _capacity(n){
             first_element_pointer = alloc.allocate(n);
             alloc.construct(first_element_pointer, n, _value);
         }
@@ -81,30 +79,28 @@ namespace mystl{
         explicit vector(inputIterator first, inputIterator last,
                 const allocator_type& alloc = allocator_type()) {
             element_num = last - first;
-            _max_size = element_num;
+            _capacity = element_num;
             first_element_pointer = alloc.allocate(element_num);
             alloc.construct(first_element_pointer, first, last);
         }
         //Copy constructor.
-        vector(const vector& v) {
-            this->element_num = v.element_num;
-            this->_max_size = v._max_size;
+        vector(const vector& v): element_num(v.element_num), _capacity(v._capacity) {
             first_element_pointer = _allocator.allocate(element_num);
             _allocator.construct(first_element_pointer, v.begin(), v.end());
         }
         //Destructor.
         ~vector() {
             _allocator.destroy(first_element_pointer, element_num);
-            if (0 != _max_size)
-                _allocator.dealloc(first_element_pointer, _max_size);
+            if (0 != _capacity)
+                _allocator.deallocate(first_element_pointer, _capacity);
         }
 
         vector& operator=(const vector& v) {
             _allocator.destroy(first_element_pointer, element_num);
-            if (_max_size < v.max_size()) {
-                if (0 != _max_size)
-                    _allocator.dealloc(first_element_pointer, _max_size);
-                _allocator.allocate(v.max_size());
+            if (_capacity < v.capacity()) {
+                if (0 != _capacity)
+                    _allocator.deallocate(first_element_pointer, _capacity);
+                _allocator.allocate(v.capacity());
             }
             _allocator.construct(first_element_pointer, v.begin(), v.end());
         }
@@ -148,15 +144,19 @@ namespace mystl{
         size_type size() const {
             return element_num;
         }
+        //Get capacity.
+        size_type capacity() const {
+            return _capacity;
+        }
         //Get max size.
         size_type max_size() const {
-            return _max_size;
+            return ((size_t) - 1) / sizeof(T);
         }
         //Resize vector.
         void resize(size_type n, const value_type& value = value_type()) {    
             if (n <= element_num) {
                 _allocator.destroy(first_element_pointer + n, element_num - n);
-            } else if (n <= _max_size) {
+            } else if (n <= _capacity) {
                 _allocator.construct(first_element_pointer + element_num, n - element_num, value);  
             } else {
                 auto_extend_space(n);
@@ -211,19 +211,19 @@ namespace mystl{
         void assign(inputIterator first, inputIterator last) {
             _allocator.destroy(first_element_pointer, element_num);
             size_t n = last - first;
-            if (_max_size < n) {
-                if (0 != _max_size)
-                    _allocator.dealloc(first_element_pointer, _max_size);
+            if (_capacity < n) {
+                if (0 != _capacity)
+                    _allocator.deallocate(first_element_pointer, _capacity);
                 first_element_pointer = _allocator.allocate(n);
-                _max_size = last -first;
+                _capacity = last -first;
             }
             _allocator.construct(first_element_pointer, first, last);
             element_num = n;
         }
         //Push element to back.
         void push_back(const value_type& value) {
-            if (element_num == _max_size) {
-                auto_extend_space(_max_size + 1);
+            if (element_num == _capacity) {
+                auto_extend_space(_capacity + 1);
             }
             _allocator.construct(first_element_pointer + element_num, 1, value);
             ++element_num;
@@ -238,8 +238,8 @@ namespace mystl{
         //Insert element at position
         iterator insert(iterator position, const value_type& value) {
             size_type pos = position - first_element_pointer;
-            if (element_num == _max_size) {
-                auto_extend_space(_max_size + 1);
+            if (element_num == _capacity) {
+                auto_extend_space(_capacity + 1);
             }
             position = first_element_pointer + pos;
             _allocator.move(position + 1, position, 
@@ -251,7 +251,7 @@ namespace mystl{
         //Fill insert.
         void insert(iterator position, size_type n, const value_type& value) {
             size_type pos = position - first_element_pointer;
-            if (element_num + n > _max_size) {
+            if (element_num + n > _capacity) {
                 auto_extend_space(element_num + n);
             }
             position = begin() + pos;
@@ -264,7 +264,7 @@ namespace mystl{
         void insert(iterator position, iterator first, iterator last) {
             size_type n = last - first;
             size_type pos = position - first_element_pointer;
-            if (element_num + n > _max_size)
+            if (element_num + n > _capacity)
                 auto_extend_space(element_num + n);
             position = first_element_pointer + pos;
             _allocator.move(position + n, position, n);
@@ -297,34 +297,34 @@ namespace mystl{
         //Clear vector.
         void clear() {
             _allocator.destroy(first_element_pointer, element_num);
-            if (0 != _max_size)
-                _allocator.dealloc(first_element_pointer, _max_size);
-            _max_size = 0;
+            if (0 != _capacity)
+                _allocator.deallocate(first_element_pointer, _capacity);
+            _capacity = 0;
             element_num = 0;
         }
     private:
         //element_num is num of elements stored.
         size_type element_num;
-        //_max_size is the size of space the vector has.
-        size_type _max_size;
+        //_capacity is the size of space the vector has.
+        size_type _capacity;
         pointer first_element_pointer;
         allocator_type _allocator;
 
         //Handle element number overflow.
         void auto_extend_space(size_type required) {
-            size_type new_size = _max_size;
-            if (0 == _max_size)
+            size_type new_size = _capacity;
+            if (0 == _capacity)
                 new_size = 1;
             while (new_size < required)
                 new_size = new_size << 1;
             pointer temp = _allocator.allocate(new_size);
             _allocator.construct(temp, begin(), end());
-            if (0 != _max_size) {
+            if (0 != _capacity) {
                 _allocator.destroy(first_element_pointer, element_num);
-                _allocator.dealloc(first_element_pointer, _max_size);
+                _allocator.deallocate(first_element_pointer, _capacity);
             }
             first_element_pointer = temp;
-            _max_size = new_size;
+            _capacity = new_size;
         }
         
     };
