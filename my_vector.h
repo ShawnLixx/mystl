@@ -26,7 +26,7 @@ namespace mystl{
         //Reverse iterator implement.
         //Default constructor, construct 0 element.
         explicit vector(const allocator_type& alloc = allocator_type()):
-            _size(0), _capacity(0), _allocator(alloc) {
+            _size(0), _capacity(0), _first(0),  _allocator(alloc) {
         }
         //Construct n elements with value _value.
         explicit vector(size_type n, const_reference _value = value_type(), 
@@ -52,7 +52,7 @@ namespace mystl{
         //Destructor.
         ~vector() {
 			for (size_type i = 0; i < _size; ++i)
-				_allocator.destory(addressof(*(_first + i)));
+				_allocator.destroy(addressof(*(_first + i)));
             if (0 != _capacity)
                 _allocator.deallocate(addressof(*_first), _capacity);
         }
@@ -113,7 +113,7 @@ namespace mystl{
         void resize(size_type n, const value_type& value = value_type()) {    
             if (n <= _size) {
 				for (iterator i = _first + n; i < end() - n; ++i)
-					_allocator.destory(addressof(*(i)));
+					_allocator.destroy(addressof(*(i)));
             } else if (n <= _capacity) {
 				uninitialized_fill_n(_first + _size, n - _size, value);
             } else {
@@ -176,8 +176,8 @@ namespace mystl{
 				uninitialized_copy(first + _size, last, _first + _size);
 			} else {
 				copy(first, last, _first);
-				for (size_type i = n + 1; i < _size; ++i)
-					_allocator.destory(addresso(*(_first + i)));
+				for (size_type i = n; i < _size; ++i)
+					_allocator.destroy(addresso(*(_first + i)));
 			}
 			_size = n;
 
@@ -204,8 +204,10 @@ namespace mystl{
                 auto_extend_space(_capacity + 1);
             }
             position = _first + pos;
-			_allocator.construct(addressof(*(_first + _size)), *(_first + _size - 1));
-			copy_backwd(position, _first + _size - 1, position + 1);
+			if (!empty()) {
+				_allocator.construct(addressof(*(_first + _size)), *(_first + _size - 1));
+				copy_backwd(position, _first + _size - 1, position + 1);
+			}
             *position = value;
             ++_size;
             return position;
@@ -217,9 +219,15 @@ namespace mystl{
                 auto_extend_space(_size + n);
             }
             position = _first + pos;
-			uninitialized_copy(_first + _size - n, _first + _size, _first + _size);
+			if (_size >= n) {
+				uninitialized_copy(_first + _size - n, _first + _size, _first + _size);
 			copy_backwd(position, _first + _size - n, position + n);
             fill_n(position, n, value);
+			} else {
+				uninitialized_copy(position, end(), position + n);
+				fill(position, end(), value);
+				uninitialized_fill(end(), position + n, value);
+			}
 			_size += n;
         }
         //Range insert.
@@ -229,9 +237,15 @@ namespace mystl{
             if (_size + n > _capacity)
                 auto_extend_space(_size + n);
             position = _first + pos;
-			uninitialized_copy(_first + _size + n, _first + _size, _first + _size);
+			if (_size >= n) {
+				uninitialized_copy(_first + _size - n, _first + _size, _first + _size);
 			copy_backwd(position, _first + _size - n, position + n);
 			copy(first, last, position);
+			} else {
+				uninitialized_copy(position, end(), position + n);
+				copy(first, first + (end() - position), position);
+				uninitialized_copy(first + (end() - position), last, end());
+			}
 			_size += n;
         }
         //Erase element at position.
@@ -247,8 +261,8 @@ namespace mystl{
             if (n <= 0)
                 return first;
             copy(last, end(), first);
-			for ( ; n > 0; --n)
-				_allocator.destory(addressof(*(end() - n)));
+			for (size_type i = n ; i > 0; --i)
+				_allocator.destroy(addressof(*(end() - n)));
             _size -= n;
             return first;
         }
@@ -264,12 +278,12 @@ namespace mystl{
 				swap_ranges(begin(), end(), x.begin());
 				uninitialized_copy(x.begin() + _size, x.end(), end());
 				for (size_type i = _size; i < x.size(); ++i)
-					x.get_allocator().destory(addressof(*(x.begin() + i)));
+					x.get_allocator().destroy(addressof(*(x.begin() + i)));
 			} else {
 				swap_ranges(x.begin(), x.end(), begin());
 				uninitialized_copy(begin() + x.size(), end(), x.end());
 				for (size_type i = x.size(); i < _size; ++i)
-					_allocator.destory(addressof(*(_first + i)));
+					_allocator.destroy(addressof(*(_first + i)));
 			}
 			mystl::swap(_size, x._size);
 		}
@@ -280,10 +294,7 @@ namespace mystl{
         //Clear vector.
         void clear() {
             for (size_type i = 0; i < _size; ++i)
-				_allocator.destory(addressof(*(_first + i)));
-			if (0 != _capacity)
-                _allocator.deallocate(_first, _capacity);
-            _capacity = 0;
+				_allocator.destroy(addressof(*(_first + i)));
             _size = 0;
         }
     private:
@@ -305,11 +316,11 @@ namespace mystl{
 		}
 		//Extend space.
 		void extend_space(size_type n) {
-			iterator temp((pointer)_allocator.allocate(n));
-            copy(_first, end(), temp);
+			iterator temp(_allocator.allocate(n));
 			if (0 != _capacity) {
+				copy(_first, end(), temp);
 				for (size_type i = 0; i < _size; ++i)
-					_allocator.destory(_first + i);
+					_allocator.destroy(_first + i);
                 _allocator.deallocate(_first, _capacity);
             }
             _first = temp;

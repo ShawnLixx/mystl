@@ -13,7 +13,7 @@ namespace mystl {
     
     //Destory object.
     template<class T>
-    void _destory(T* p) {
+    void _destroy(T* p) {
         p->~T();
     }
 }

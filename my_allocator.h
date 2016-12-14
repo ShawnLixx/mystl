@@ -43,7 +43,7 @@ namespace mystl {
         }
 
         //Allocate space of n * size of value_type, if failed throw bad_alloc.
-        const_pointer allocate(size_type n, const void* = 0) {
+        pointer allocate(size_type n, const void* = 0) {
             void* p = ::operator new(n * sizeof(value_type));
             if (0 == p) {
                 throw std::bad_alloc();
@@ -59,8 +59,8 @@ namespace mystl {
             _construct(p, x);
         }
         //Destruct elements.
-        void destory(pointer p) {
-            _destory(p);
+        void destroy(pointer p) {
+            _destroy(p);
         }
         
         //Get max_size.
