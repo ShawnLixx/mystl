@@ -43,6 +43,23 @@ namespace mystl {
     T* addressof(T& value) {
         return reinterpret_cast<T*>(&const_cast<char&>(reinterpret_cast<const volatile char&>(value)));
     }
+
+	//Swap two object.
+	template<class T>
+	void swap(T& a, T& b) {
+		T temp(a);
+		a = b;
+		b = temp;
+	}
+	//Swap objects in range.
+	template<class ForwardIterator1, class ForwardIterator2>
+	ForwardIterator2 swap_ranges(ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2) {
+		for ( ; first1 != last1; ++first1) {
+			swap(*first1, *first2);
+			++first2;
+		}
+		return first2;
+	}
 }
 
 #endif

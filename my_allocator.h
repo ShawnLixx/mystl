@@ -22,7 +22,7 @@ namespace mystl {
         template<class U>
         class rebind {
         public:
-            typedef allocator<U> allocator;
+            typedef allocator<U> other;
         };
 
         //Contructors
@@ -59,7 +59,7 @@ namespace mystl {
             _construct(p, x);
         }
         //Destruct elements.
-        void destroy(pointer p) {
+        void destory(pointer p) {
             _destory(p);
         }
         
