@@ -6,7 +6,7 @@
 #include "my_algobase.h"
 #include "my_iterator.h"
 
-namespace mystl{
+namespace mystl {
 
     template<typename T, typename Alloc = allocator<T> >
     class vector {
@@ -23,7 +23,6 @@ namespace mystl{
 		typedef mystl::reverse_iterator<iterator> reverse_iterator;
 		typedef mystl::reverse_iterator<const_iterator> const_reverse_iterator;
 
-        //Reverse iterator implement.
         //Default constructor, construct 0 element.
         explicit vector(const allocator_type& alloc = allocator_type()):
             _size(0), _capacity(0), _first(0),  _allocator(alloc) {
@@ -65,37 +64,33 @@ namespace mystl{
         
         //Functions about data access.
         //Get first iterator.
-        iterator begin() const {
+        iterator begin() {
             return _first;
         }
+		const_iterator begin() const {
+			return _first;
+		}
         //Get last iterator(iterator of last element + 1).
-        iterator end() const {
+        iterator end() {
             return _first + _size;
         }
+		const_iterator end() const {
+			return _first + _size;
+		}
         //Get first reverse iterator.
-        reverse_iterator rbegin() const {
+        reverse_iterator rbegin() {
             return reverse_iterator(_first + _size);
         }
+		const_reverse_iterator rbegin() const {
+			return rbegin();
+		}
         //Get last reverse iterator.
-        reverse_iterator rend() const {
+        reverse_iterator rend() {
             return reverse_iterator(_first);
         }
-        //Get const first reverse iterator.
-        const iterator cbegin() const {
-            return begin();
-        }
-        //Get const last reverse iterator.
-        const iterator cend() const {
-            return end();
-        }
-        //Get const first reverse iterator.
-        const reverse_iterator crbegin() const {
-            return rbegin();
-        }
-        //Get const last reverse iterator.
-        const reverse_iterator crend() const {
-            return rend();
-        }
+		const_reverse_iterator rend() const {
+			return rend();
+		}
         
         //Get size.
         size_type size() const {
@@ -329,6 +324,84 @@ namespace mystl{
 		}
         
     };
+
+	//Functions.
+	template<class T, class Alloc>
+	bool operator==(const vector<T, Alloc>& l, const vector<T, Alloc>& r) {
+		if (l.size() != r.size())
+			return false;
+		for (typename vector<T, Alloc>::size_type i = 0; i < l.size(); ++i) {
+			if (l[i] != r[i])
+				return false;
+		}
+		return true;
+	}
+	template<class T, class Alloc>
+	bool operator!=(const vector<T, Alloc>& l, const vector<T, Alloc>& r) {
+		return !(l == r);
+	}
+	template<class T, class Alloc>
+	bool operator<(const vector<T, Alloc>& l, const vector<T, Alloc>& r) {
+		typename vector<T, Alloc>::size_type i = 0;
+		for ( ; i < l.size(); ++i) {
+			if (i == r.size())
+				return false;
+			else if (l[i] == r[i])
+				continue;
+			else
+				return l[i] < r[i];
+		}
+		if (i == r.size())
+			return false;
+		else
+			return true;
+	}
+	template<class T, class Alloc>
+	bool operator<=(const vector<T, Alloc>& l, const vector<T, Alloc>& r) {
+		for (typename vector<T, Alloc>::size_type i = 0; i < l.size(); ++i) {
+			if (i == r.size())
+				return false;
+			else if (l[i] == r[i])
+				continue;
+			else
+				return l[i] < r[i];
+		}
+		return true;
+	}
+	template<class T, class Alloc>
+	bool operator>(const vector<T, Alloc>& l, const vector<T, Alloc>& r) {
+		for (typename vector<T, Alloc>::size_type i = 0; i < l.size(); ++i) {
+			if (i == r.size())
+				return true;
+			else if (l[i] == r[i])
+				continue;
+			else
+				return l[i] > r[i];
+		}
+		return false;
+	}
+	template<class T, class Alloc>
+	bool operator>=(const vector<T, Alloc>& l, const vector<T, Alloc>& r) {
+		typename vector<T, Alloc>::size_type i = 0;
+		for ( ; i < l.size(); ++i) {
+			if (i == r.size())
+				return true;
+			else if (l[i] == r[i])
+				continue;
+			else
+				return l[i] > r[i];
+		}
+		if (i == r.size())
+			return true;
+		else
+			return false;
+	}
+	//Swap two vector.
+	template<class T, class Alloc>
+	void swap(vector<T, Alloc>& l, vector<T, Alloc>& r) {
+		l.swap(r);
+	}
+
 }
 
 #endif

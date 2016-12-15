@@ -140,8 +140,8 @@ namespace mystl {
     template<class InputIterator>
     inline typename iterator_traits<InputIterator>::difference_type
     _distance(InputIterator first, InputIterator last, input_iterator_tag) {
-        typename iterator_traits<InputIterator>::difference_type n;
-        for ( ; first != last; ++first)
+        typename iterator_traits<InputIterator>::difference_type n = 0;
+		for ( ; first != last; ++first)
             ++n;
         return n;
     }
@@ -155,7 +155,7 @@ namespace mystl {
     template<class Iterator>
     inline typename iterator_traits<Iterator>::difference_type
     distance(Iterator first, Iterator last) {
-        return _distance(first, last, iterator_traits<Iterator>::iterator_category());
+		return _distance(first, last, typename iterator_traits<Iterator>::iterator_category());
     }
 
     //Advance for input_iterator.
@@ -183,7 +183,7 @@ namespace mystl {
     //Advance for general.
     template<class Iterator, class Distance>
     inline void advance(Iterator& it, Distance n) {
-        _advance(it, n, iterator_traits<Iterator>::iterator_category());
+        _advance(it, n, typename iterator_traits<Iterator>::iterator_category());
     }
 
     //Functions for reverse_iterator.
